@@ -1,0 +1,43 @@
+# Skills — procedural expertise as independent packages.
+skills:
+  - id: reproduce-bug
+    name: "Reproduce Bug"
+    description: "Reproduce a bug from issue description before attempting fix"
+    steps: [read_issue_description, identify_reproduction_steps, create_minimal_test_case, confirm_bug_reproduces, document_expected_vs_actual]
+    verification: "failing test that reproduces the bug"
+
+  - id: review-public-api-change
+    name: "Review Public API Change"
+    description: "Review changes to public API for compatibility"
+    steps: [identify_externally_visible_symbols, search_release_and_compatibility_policy, search_downstream_references, compare_against_similar_accepted_changes, require_migration_or_deprecation_path, reject_accidental_api_expansion]
+    verification: "compatibility snapshot + downstream impact assessment"
+
+  - id: design-regression-tests
+    name: "Design Regression Tests"
+    description: "Design tests that prevent regression"
+    steps: [identify_boundary_conditions, identify_error_paths, identify_edge_cases, write_positive_tests, write_negative_tests, write_property_tests_if_applicable]
+    verification: "tests pass on fixed code, fail on buggy code"
+
+  - id: minimal-pr-design
+    name: "Minimal PR Design"
+    description: "Design PRs that are easy to review and merge"
+    steps: [verify_single_concern, check_size_within_norms, write_clear_description, include_evidence_links, document_risks, identify_reviewers]
+    verification: "PR passes review checklist"
+
+  - id: dependency-change-review
+    name: "Dependency Change Review"
+    description: "Review dependency changes for necessity and safety"
+    steps: [check_if_dependency_is_runtime_or_dev, search_for_existing_alternatives, assess_security_implications, assess_maintenance_burden, require_justification]
+    verification: "justification document + security assessment"
+
+  - id: maintainer-comment-analysis
+    name: "Maintainer Comment Analysis"
+    description: "Analyze maintainer comments to extract preferences"
+    steps: [collect_comments_from_merged_prs, collect_comments_from_rejected_prs, identify_recurring_themes, classify_as_preference_or_requirement, update_doctrine]
+    verification: "doctrine updated with evidence"
+
+  - id: performance-regression-check
+    name: "Performance Regression Check"
+    description: "Check for performance regressions"
+    steps: [identify_benchmark_suite, run_baseline_benchmark, run_current_benchmark, compare_results, check_variance_threshold, verify_correctness_parity]
+    verification: "benchmark results within variance threshold"

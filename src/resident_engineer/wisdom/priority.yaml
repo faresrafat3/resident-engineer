@@ -1,0 +1,26 @@
+# Wisdom Sources — priority order for conflict resolution.
+priority_order:
+  - rank: 1
+    source: safety_legal_constitution
+    description: "Safety and legal requirements override everything"
+  - rank: 2
+    source: explicit_repository_policy
+    description: "CONTRIBUTING.md, AGENTS.md, CODEOWNERS"
+  - rank: 3
+    source: explicit_issue_or_maintainer_intent
+    description: "What the issue or maintainer explicitly asks for"
+  - rank: 4
+    source: existing_public_behavior_and_tests
+    description: "Current public behavior and test suite"
+  - rank: 5
+    source: architecture_decisions
+    description: "ADRs, design docs, architecture decisions"
+  - rank: 6
+    source: strong_repository_precedents
+    description: "Patterns across multiple merged/rejected PRs"
+  - rank: 7
+    source: general_engineering_principles
+    description: "General best practices"
+  - rank: 8
+    source: model_intuition
+    description: "LLM intuition — lowest priority"

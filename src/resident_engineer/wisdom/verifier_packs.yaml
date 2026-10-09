@@ -1,0 +1,39 @@
+# Verifier Packs — what to measure for each task type.
+verifier_packs:
+  bug_fix:
+    - reproduction: "Confirm bug reproduces before fix"
+    - regression_tests: "Add test that fails before fix, passes after"
+    - negative_cases: "Test edge cases and error paths"
+    - scope_check: "No unrelated changes"
+    - compatibility: "Public behavior preserved"
+
+  api_change:
+    - snapshot: "Public API snapshot comparison"
+    - compatibility: "Backward compatibility verified"
+    - downstream_examples: "Downstream usage examples tested"
+    - deprecation: "Deprecation path if breaking"
+    - documentation: "API documentation updated"
+
+  performance:
+    - baseline_benchmark: "Baseline benchmark established"
+    - variance_threshold: "Variance threshold defined"
+    - correctness_parity: "Correctness verified alongside performance"
+    - regression_detection: "Performance regression detected"
+
+  migration:
+    - migration_audit: "Structural audit confirms migration occurred"
+    - behavior_tests: "Behavioral tests pass"
+    - forbidden_legacy_pattern_scan: "No forbidden legacy patterns remain"
+    - rollback_plan: "Rollback plan documented"
+
+  refactor:
+    - behavior_preservation: "Behavior preserved"
+    - test_coverage: "Test coverage maintained"
+    - scope_check: "Refactor scope justified"
+    - no_new_dependencies: "No new dependencies added"
+
+  documentation:
+    - accuracy: "Documentation matches code"
+    - completeness: "All public APIs documented"
+    - examples: "Examples are runnable"
+    - consistency: "Consistent with existing docs style"

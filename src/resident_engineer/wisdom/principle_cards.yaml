@@ -1,0 +1,53 @@
+# Principle Cards — each wisdom becomes an executable artifact.
+principle_cards:
+  - id: minimal-sufficient-change
+    name: "Minimal Sufficient Change"
+    applies_when: [bug_fix, maintenance]
+    prefer: [localized_change, reuse_existing_abstraction]
+    reject: [unrelated_refactor, new_public_api, new_dependency_without_evidence]
+    exceptions: [explicit_maintainer_request, localized_solution_proven_unsafe]
+    verification:
+      - changed_subsystems <= 1
+      - no_dependency_file_change
+      - public_api_snapshot_unchanged
+    rationale: [reduce_regression_risk, reduce_review_burden]
+
+  - id: preserve-public-behavior
+    name: "Preserve Public Behavior"
+    applies_when: [bug_fix, refactor, migration]
+    reject: [breaking_change_without_deprecation]
+    verification: [public_api_snapshot_unchanged, OR deprecation_path_present]
+    rationale: [backward_compatibility, user_trust]
+
+  - id: evidence-outranks-confidence
+    name: "Evidence Outranks Confidence"
+    applies_when: [all]
+    reject: [unverified_claim]
+    verification: [every_claim_has_test_measurement_or_citation]
+    rationale: [scientific_integrity, reproducibility]
+
+  - id: abstention-over-unjustified-change
+    name: "Abstention Over Unjustified Change"
+    applies_when: [all]
+    verification: [if_uncertain_abstain_with_reasoning]
+    rationale: [do_no_harm, maintain_trust]
+
+  - id: no-mixed-concerns
+    name: "No Mixed Concerns"
+    applies_when: [bug_fix]
+    reject: [refactor_in_same_pr]
+    verification: [pr_description_separates_concerns OR single_concern]
+    rationale: [reviewability, rollback_safety]
+
+  - id: tests-necessary-not-sufficient
+    name: "Tests Necessary Not Sufficient"
+    applies_when: [bug_fix, migration, refactor]
+    verification: [structural_audit_alongside_behavioral_tests]
+    rationale: [passing_tests_can_miss_wrong_behavior, migration_can_be_avoided_not_performed]
+
+  - id: reversible-decisions
+    name: "Reversible Decisions"
+    applies_when: [design, migration]
+    prefer: [reversible, incremental]
+    reject: [irreversible_without_rollback_plan]
+    rationale: [risk_mitigation, learning_friendly]

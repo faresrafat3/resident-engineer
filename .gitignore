@@ -1,0 +1,9 @@
+# vendored clones — evidence of study, not this repo's source
+repos/
+# python
+__pycache__/
+*.pyc
+.pytest_cache/
+.venv/
+venv/
+*.egg-info/
