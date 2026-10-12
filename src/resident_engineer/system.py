@@ -129,6 +129,33 @@ class ResidentEngineeringSystem:
         )
         self.learning_loop.capture(learning)
 
+    def apply_pr_outcome(self, project: str, pr_number: int, title: str,
+                         approach: str, outcome: str, maintainer_feedback: str = "") -> dict[str, Any]:
+        """Fold a real PR outcome into the project's brain.
+
+        This is the wiring that was missing: system.record_outcome feeds
+        reputation + the learning loop, but nothing carried a PR's merged /
+        rejected result into the brain's precedents and failure_patterns — the
+        structures the resident step reads on the next contribution. This
+        calls kernel.outcome.record_outcome, so a merged PR becomes a
+        precedent and a rejected one a failure pattern, both on the brain.
+
+        Fail-closed: an outcome that is neither success nor failure records
+        nothing. Returns what landed on the brain (empty dict if no brain).
+        """
+        from .kernel.outcome import PROutcome, PRResult, record_outcome as _record_brain_outcome
+        brain = self.brains.get(project)
+        if brain is None:
+            return {}
+        try:
+            result = PRResult(
+                pr_number=pr_number, title=title, approach=approach,
+                outcome=PROutcome(outcome), maintainer_feedback=maintainer_feedback,
+            )
+        except ValueError:
+            return {"recorded": None, "reason": f"unknown outcome '{outcome}'"}
+        return _record_brain_outcome(brain, result)
+
     def consult_brain(self, project: str, approach: str) -> dict[str, Any]:
         """Consult the project's RepositoryBrain before engineering.
 
