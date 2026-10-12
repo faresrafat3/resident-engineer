@@ -10,23 +10,33 @@ tested today** — not the vision, the code on disk:
 - **Doctrine reader** — `brain/extractor.py` + `brain/fetch.py` read a real
   repo's `AGENTS.md`/`CONTRIBUTING.md` via `gh api` and extract explicit rules
   (lines carrying a rule signal). Conservative: prose without a rule signal is
-  ignored, never invented. Verified against `colony-kernel` (fetches its real
-  AGENTS.md, extracts its doctrine, recovers the gate command).
+  ignored, never invented. Code fences are skipped; short/ambiguous tokens
+  (`pr`, `ci`, `only`) match whole words only, not inside other words.
 - **Fail-closed gates** — `TaskAdmission` rejects unclear/unverifiable tasks;
-  `VerificationCourt` fails on any critical check; both tested.
+  `VerificationCourt` fails on any critical check (including a real scope limit
+  and real test-result validation). Both tested.
 - **Full contribution loop** — `run_contribution` wires
   admission → brain consult → route → cell(plan/build/review) → court →
-  proof-carrying PR. A blocked stage returns `blocked`, never `ready`.
+  proof-carrying PR. A blocked stage returns `blocked`, never `ready`; a
+  brainless run is `draft`, never `ready`.
 - **Resident step** — `consult_brain` reads the project's extracted doctrine
   before building and blocks an approach that conflicts with a compatibility
-  rule.
+  rule (the conflict keys on the approach, not the rule text).
 - **Closed loop** — `apply_pr_outcome` folds a real PR's merged/rejected result
   into the brain as a precedent/failure_pattern, which the next `consult_brain`
   reads.
 - **CLI** — `resident-engineer brain|contribute|show`, fail-closed (blocked
   exits 1). `contribute` is dry by default; `--no-brain` stays offline.
 
-**83 tests pass** (`pytest`). Runtime deps: **zero** (stdlib only).
+**96 tests pass** (`pytest`). Runtime deps: **zero** (stdlib only).
+
+**Review-hardened (v0.1.1).** An adversarial `slop-reviewer` pass over the
+v0.1.0 diff returned HOLD with 16 findings; every critical one was reproduced,
+fixed, and pinned with a regression test (`tests/test_review_fixes.py`). Among
+the fixes: the scope check is a real threshold not a hardcoded pass, a
+brainless run is draft not ready, test results must be real ints, doctrine
+classification is word-boundary not substring, and code fences are not
+doctrine.
 
 ```bash
 # read a repo's doctrine into a brain (read-only)
