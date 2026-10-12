@@ -2,6 +2,44 @@
 
 Autonomous Open-Source Resident Engineering System — a multi-agent system that resides inside open-source projects, understands their history and philosophy, and gradually evolves from visitor to trusted contributor.
 
+## Status — what actually runs (verified 2026-10-12)
+
+The architecture below is the design. **This is what is implemented and
+tested today** — not the vision, the code on disk:
+
+- **Doctrine reader** — `brain/extractor.py` + `brain/fetch.py` read a real
+  repo's `AGENTS.md`/`CONTRIBUTING.md` via `gh api` and extract explicit rules
+  (lines carrying a rule signal). Conservative: prose without a rule signal is
+  ignored, never invented. Verified against `colony-kernel` (fetches its real
+  AGENTS.md, extracts its doctrine, recovers the gate command).
+- **Fail-closed gates** — `TaskAdmission` rejects unclear/unverifiable tasks;
+  `VerificationCourt` fails on any critical check; both tested.
+- **Full contribution loop** — `run_contribution` wires
+  admission → brain consult → route → cell(plan/build/review) → court →
+  proof-carrying PR. A blocked stage returns `blocked`, never `ready`.
+- **Resident step** — `consult_brain` reads the project's extracted doctrine
+  before building and blocks an approach that conflicts with a compatibility
+  rule.
+- **Closed loop** — `apply_pr_outcome` folds a real PR's merged/rejected result
+  into the brain as a precedent/failure_pattern, which the next `consult_brain`
+  reads.
+- **CLI** — `resident-engineer brain|contribute|show`, fail-closed (blocked
+  exits 1). `contribute` is dry by default; `--no-brain` stays offline.
+
+**83 tests pass** (`pytest`). Runtime deps: **zero** (stdlib only).
+
+```bash
+# read a repo's doctrine into a brain (read-only)
+resident-engineer brain owner/repo
+
+# run the full loop, dry (builds the PR body, pushes nothing)
+resident-engineer contribute owner/repo --title "..." --description "..." \
+  --approach "..." --files a.py --passed 5
+
+# offline / testable (skip the network fetch)
+resident-engineer contribute owner/repo ... --no-brain
+```
+
 ## Architecture
 
 ```
