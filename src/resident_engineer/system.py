@@ -129,6 +129,42 @@ class ResidentEngineeringSystem:
         )
         self.learning_loop.capture(learning)
 
+    def consult_brain(self, project: str, approach: str) -> dict[str, Any]:
+        """Consult the project's RepositoryBrain before engineering.
+
+        This is the step that makes the system *resident* rather than a
+        generic contributor: it reads the doctrine the brain extracted from
+        the project's real docs and returns the rules that bear on this task,
+        plus any doctrine the proposed approach would violate. A brain with no
+        matching doctrine returns an empty (honest) context — never invented
+        guidance.
+
+        Fail-closed on conflict: if the approach contradicts a compatibility
+        or contribution doctrine, the caller is told, so the cell can revise
+        before building rather than ship a PR the project's own rules reject.
+        """
+        brain = self.brains.get(project)
+        if brain is None:
+            return {"has_brain": False, "doctrine": [], "conflicts": []}
+
+        # doctrine relevant to the task (contribution / compatibility / testing)
+        relevant = [
+            d for d in brain.doctrine
+            if d.type.value in ("contribution", "compatibility", "testing")
+        ]
+        # a conflict: the approach touches a compatibility-constrained area
+        conflicts = [
+            d.rule for d in brain.doctrine
+            if d.type.value == "compatibility"
+            and any(w in approach.lower() for w in ("api", "breaking", "remove", "rename", "change"))
+        ]
+        return {
+            "has_brain": True,
+            "doctrine": [{"type": d.type.value, "rule": d.rule, "source": d.source} for d in relevant],
+            "conflicts": conflicts,
+            "playbook": [e.action for e in brain.playbook],
+        }
+
     def run_contribution(
         self,
         title: str,
@@ -157,13 +193,22 @@ class ResidentEngineeringSystem:
             return {"status": "rejected", "stage": "admission",
                     "reasoning": admission.reasoning, "requirements": admission.requirements}
 
-        # 2. route to a resident engineer
+        # 2. consult the project's brain — the resident step. The doctrine the
+        # brain extracted from the repo's own docs informs the plan, and a
+        # conflict with a compatibility doctrine blocks before building.
+        brain_ctx = self.consult_brain(project, approach)
+        if brain_ctx["conflicts"]:
+            return {"status": "blocked", "stage": "brain",
+                    "reasoning": "approach conflicts with the project's own doctrine",
+                    "conflicts": brain_ctx["conflicts"]}
+
+        # 3. route to a resident engineer
         route = self.task_router.route(Task(
             id=f"task-{datetime.now().strftime('%Y%m%d%H%M%S')}",
             type=TaskType.BUG_FIX, project=project, description=description, requirements={},
         ))
 
-        # 3. the engineering cell: plan → build → independent review
+        # 4. the engineering cell: plan → build → independent review
         cell = EngineeringCell(project=project)
         cell.set_plan(PlanCandidate(
             id=f"plan-{datetime.now().strftime('%H%M%S')}", approach=approach,
