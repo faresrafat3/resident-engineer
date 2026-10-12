@@ -50,6 +50,25 @@ _TEXT_OVERRIDES: list[tuple[tuple[str, ...], DoctrineType]] = [
 ]
 
 
+def _word_match(text: str, hint: str) -> bool:
+    """Word-boundary match for short/ambiguous hints.
+
+    F11: substring matching let "pr" match inside "propose"/"approvals", "ci"
+    inside "recipe"/"reconcile", "only" inside "ff-only" — misclassifying ~20-40%
+    of real rules into the wrong (or a silent 'design') bucket. Short hints
+    (<=3 chars, or known-ambiguous tokens) must match whole words only; longer,
+    distinctive phrases keep substring matching. Compiled once at module load.
+    """
+    if len(hint) <= 3 or hint in ("api", "only", "ci", "pr"):
+        return _WORD_RE[hint].search(text) is not None if hint in _WORD_RE \
+            else re.search(rf"\b{re.escape(hint)}\b", text) is not None
+    return hint in text
+
+
+# precompiled word-boundary patterns for the ambiguous short tokens
+_WORD_RE = {h: re.compile(rf"\b{re.escape(h)}\b") for h in ("api", "only", "ci", "pr")}
+
+
 def _classify(heading: str, rule_text: str = "") -> DoctrineType:
     """Classify a rule by its section heading, then its own text.
 
@@ -59,11 +78,11 @@ def _classify(heading: str, rule_text: str = "") -> DoctrineType:
     """
     low_rule = rule_text.lower()
     for hints, dtype in _TEXT_OVERRIDES:
-        if any(h in low_rule for h in hints):
+        if any(_word_match(low_rule, h) for h in hints):
             return dtype
     low = heading.lower()
     for hints, dtype in _TYPE_HINTS:
-        if any(h in low for h in hints):
+        if any(_word_match(low, h) for h in hints):
             return dtype
     return DoctrineType.DESIGN  # default bucket, never a guess at a specific type
 
@@ -94,9 +113,15 @@ def extract_rules(text: str, source: str) -> list[ExtractedRule]:
     """
     rules: list[ExtractedRule] = []
     current_heading = ""
+    in_fence = False  # F13: lines between ``` fences are example code, not doctrine
     for i, raw in enumerate(text.splitlines(), start=1):
         line = raw.strip()
         if not line:
+            continue
+        if line.startswith("```"):
+            in_fence = not in_fence
+            continue
+        if in_fence:
             continue
         if line.startswith("#"):
             current_heading = line.lstrip("#").strip()
@@ -127,6 +152,11 @@ def extract_playbook(text: str, source: str) -> list[PlaybookEntry]:
         re.compile(r"\b(make (?:test|check|verify))\b"),
     )
     for raw in text.splitlines():
+        # F14: skip a negated command — "Do not use npm run build" must not
+        # become "run npm run build". Check for a negation near the match.
+        low = raw.lower()
+        if any(neg in low for neg in ("do not", "don't", "never", "avoid", "not ")):
+            continue
         for pat in cmd_patterns:
             m = pat.search(raw)
             if m:

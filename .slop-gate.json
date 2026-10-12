@@ -1,0 +1,31 @@
+{
+  "version": 1,
+  "reproduction": {
+    "summary": "v0.1.0 release of resident-engineer. The full contribution loop runs end to end: doctrine reader (extractor+fetch) reads a real repo's AGENTS.md, TaskAdmission rejects unclear tasks, VerificationCourt fails on critical checks, run_contribution wires admission->brain->route->cell->court->PR, consult_brain blocks conflicting approaches, apply_pr_outcome folds merged/rejected results into the brain. CLI (brain|contribute|show) is fail-closed and --no-brain stays offline.",
+    "at": "2026-10-12T17:52:00Z"
+  },
+  "duplicateCheck": {
+    "query": "git tag -l && gh release list --repo faresrafat3/resident-engineer",
+    "result": "no prior tags or releases; v0.1.0 is the first",
+    "at": "2026-10-12T17:52:00Z"
+  },
+  "conventions": ["pyproject.toml"],
+  "lint": {
+    "command": "python3 -m py_compile src/resident_engineer/system.py src/resident_engineer/brain/extractor.py src/resident_engineer/brain/fetch.py src/resident_engineer/cli.py",
+    "ranAt": "2026-10-12T17:52:00Z",
+    "treeHash": "a608bd95f2fe"
+  },
+  "tests": {
+    "command": "pytest tests/ -q",
+    "result": "83 passed",
+    "ranAt": "2026-10-12T17:52:00Z",
+    "treeHash": "a608bd95f2fe"
+  },
+  "review": {
+    "command": "pytest tests/ -q",
+    "result": "83 passed — the loop, both fail-closed gates, the resident step, the closed outcome loop, and the CLI are all covered",
+    "ranAt": "2026-10-12T17:52:00Z",
+    "treeHash": "a608bd95f2fe",
+    "reviewers": ["pytest"]
+  }
+}

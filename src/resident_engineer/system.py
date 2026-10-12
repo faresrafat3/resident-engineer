@@ -5,6 +5,11 @@ from datetime import datetime
 from typing import Any
 import json
 
+# A narrow fix should not sprawl across the tree. Above this many files the
+# SCOPE court check flags the change — a real threshold, not a hardcoded pass.
+_SCOPE_FILE_LIMIT = 20
+
+
 from .kernel.identity import AgentIdentity, AgentRole
 from .kernel.communication import MessageBus, Message, MessageType
 from .kernel.workflow import WorkflowEngine, WorkflowStep, Workflow
@@ -172,24 +177,37 @@ class ResidentEngineeringSystem:
         """
         brain = self.brains.get(project)
         if brain is None:
-            return {"has_brain": False, "doctrine": [], "conflicts": []}
+            return {"has_brain": False, "doctrine": [], "conflicts": [], "precedents": []}
 
         # doctrine relevant to the task (contribution / compatibility / testing)
         relevant = [
             d for d in brain.doctrine
             if d.type.value in ("contribution", "compatibility", "testing")
         ]
-        # a conflict: the approach touches a compatibility-constrained area
-        conflicts = [
-            d.rule for d in brain.doctrine
-            if d.type.value == "compatibility"
-            and any(w in approach.lower() for w in ("api", "breaking", "remove", "rename", "change"))
+        # F1 fix: a conflict is when the APPROACH touches a surface the project
+        # has put a compatibility rule around — the danger words belong to the
+        # approach, not the rule. The old code matched the rule text, so it
+        # blocked innocent wording changes and sailed a real API break past.
+        # Now: a compatibility rule exists AND the approach names a
+        # compatibility-breaking action -> conflict, naming the rule it breaks.
+        approach_low = approach.lower()
+        breaking_actions = ("rename", "remove", "drop", "rewrite", "break", "incompatible",
+                            "change the api", "change public", "change the public")
+        compat_rules = [d for d in brain.doctrine if d.type.value == "compatibility"]
+        approach_breaks = any(a in approach_low for a in breaking_actions)
+        conflicts = [d.rule for d in compat_rules] if (compat_rules and approach_breaks) else []
+        # F12 fix: return the precedents so the resident step actually reads them
+        # — a merged/rejected PR outcome should inform the next contribution.
+        precedents = [
+            {"pr": p.pr_number, "outcome": p.outcome, "lesson": p.lesson, "confidence": p.confidence}
+            for p in sorted(brain.precedents, key=lambda p: p.confidence, reverse=True)[:5]
         ]
         return {
             "has_brain": True,
             "doctrine": [{"type": d.type.value, "rule": d.rule, "source": d.source} for d in relevant],
             "conflicts": conflicts,
             "playbook": [e.action for e in brain.playbook],
+            "precedents": precedents,
         }
 
     def run_contribution(
@@ -228,6 +246,10 @@ class ResidentEngineeringSystem:
             return {"status": "blocked", "stage": "brain",
                     "reasoning": "approach conflicts with the project's own doctrine",
                     "conflicts": brain_ctx["conflicts"]}
+        # F3 fix: a contribution with no brain is NOT 'ready' — the resident step
+        # that keeps a PR aligned with the project's own rules never ran. It is
+        # downgraded to draft with the reason, not silently published-ready.
+        no_brain = not brain_ctx["has_brain"]
 
         # 3. route to a resident engineer
         route = self.task_router.route(Task(
@@ -260,13 +282,26 @@ class ResidentEngineeringSystem:
                     "cell": cell.to_dict()}
 
         # 4. the verification court — the second gate
+        # F5 fix: a test result is only "ok" when it is a real positive int and
+        # zero failures. {"passed": "yes"}, {"passed": -5}, {"passed": True} are
+        # not a passing run — they are a result we cannot read, and a gate that
+        # cannot read its input must not pass it.
+        passed = test_results.get("passed", 0)
+        failed = test_results.get("failed", 0)
+        tests_ok = isinstance(passed, int) and not isinstance(passed, bool) \
+            and passed > 0 and failed == 0
         court = VerificationCourt()
-        court.add_check(VerificationCheck(CheckType.TESTS, "tests", build_ok,
-                                          f"{test_results.get('passed', 0)} passed"))
-        court.add_check(VerificationCheck(CheckType.BEHAVIOR, "behaviour", build_ok,
-                                          "no regressions" if build_ok else "regression detected"))
-        court.add_check(VerificationCheck(CheckType.SCOPE, "scope", True,
-                                          f"{len(files_changed)} files, all in scope"))
+        court.add_check(VerificationCheck(CheckType.TESTS, "tests", tests_ok,
+                                          f"{passed} passed" if tests_ok else "no readable passing test run"))
+        court.add_check(VerificationCheck(CheckType.BEHAVIOR, "behaviour", tests_ok,
+                                          "no regressions" if tests_ok else "regression or unreadable result"))
+        # F2 fix: scope is a real check, not a hardcoded True. A change touching
+        # more files than a single narrow fix warrants is flagged; the evidence
+        # string now states the measured count, never an unverified "all in scope".
+        scope_ok = len(files_changed) <= _SCOPE_FILE_LIMIT
+        court.add_check(VerificationCheck(CheckType.SCOPE, "scope", scope_ok,
+                                          f"{len(files_changed)} files changed"
+                                          + ("" if scope_ok else f" (over the {_SCOPE_FILE_LIMIT}-file limit for a narrow change)")))
         verdict = court.evaluate()
         if not verdict.passed:
             return {"status": "blocked", "stage": "court",
@@ -286,14 +321,20 @@ class ResidentEngineeringSystem:
         pr.add_evidence(Evidence("review", f"independent review by {reviewer}",
                                  {"score": 8.0}, verified=True))
         pr.status = PRStatus.READY if pr.is_ready() else PRStatus.DRAFT
+        # F3 fix: no brain -> draft, never ready. The resident step never ran, so
+        # the PR cannot claim alignment with rules that were never read.
+        final_status = "ready" if (pr.is_ready() and not no_brain) else "draft"
 
         return {
-            "status": "ready" if pr.is_ready() else "draft",
+            "status": final_status,
             "stage": "pr",
             "route": {"agent_id": route.agent_id, "confidence": route.confidence},
             "court": {"verdict": verdict.verdict.value, "score": verdict.overall_score},
             "pr": pr.to_dict(),
             "pr_body": pr.to_body(),
+            **({"no_brain": True,
+                "reasoning": "no doctrine brain for this project — resident step did not run; PR held as draft"}
+               if no_brain else {}),
         }
 
     def to_dict(self) -> dict[str, Any]:

@@ -33,6 +33,11 @@ _BASE = ["--no-brain"]
 
 class TestContributeCLI:
     def test_ready_contribution_exits_zero(self):
+        # WITH a brain (registered offline via --no-brain is no-brain; here we
+        # exercise the ready path by pointing at a repo whose brain we stub is
+        # not possible offline, so this asserts the draft-with-no-brain path is
+        # honest instead: --no-brain cannot claim ready. The ready path is
+        # covered by test_contribution.py with a registered brain.
         code, out = _run([
             "contribute", "some/repo",
             "--title", "Fix ValueError when config key is missing",
@@ -40,9 +45,20 @@ class TestContributeCLI:
             "--files", "config.py", "--tests", "test_config.py",
             "--passed", "5", "--failed", "0", *_BASE,
         ])
-        assert code == 0
-        assert "ready" in out
-        assert "## Evidence" in out   # proof-carrying body printed
+        # F3: no brain -> draft, exit 1, reason stated — never a false 'ready'
+        assert code == 1
+        assert "draft" in out
+        assert "reason:" in out   # the reason is stated, not silently dropped
+
+    def test_no_brain_never_reports_ready(self):
+        code, out = _run([
+            "contribute", "some/repo",
+            "--title", "Fix ValueError when config key is missing",
+            "--description", DESC, "--approach", "name the missing key",
+            "--passed", "5", "--failed", "0", "--no-brain",
+        ])
+        assert "ready" not in out   # the word never appears for a brainless run
+        assert code == 1
 
     def test_failing_tests_exit_nonzero(self):
         code, out = _run([

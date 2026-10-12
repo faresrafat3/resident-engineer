@@ -112,8 +112,17 @@ def apply_lessons(brain: RepositoryBrain, learning: LearningLoop) -> dict[str, A
         if item.type == LearningType.DOCTRINE_UPDATE:
             rule = item.lesson.get("rule")
             if rule:
+                # F7: validate the type; a bogus type must not raise out of the
+                # loop and leave the lesson permanently unapplied (re-raising on
+                # every future call). Skip-and-mark is fail-safe, not fail-closed
+                # crash — the loop survives a malformed lesson.
+                try:
+                    dtype = DoctrineType(item.lesson.get("type", "design"))
+                except ValueError:
+                    learning.mark_applied(item.id)
+                    continue
                 brain.add_doctrine(Doctrine(
-                    type=DoctrineType(item.lesson.get("type", "design")),
+                    type=dtype,
                     rule=rule, source=f"learning:{item.id}", confidence=item.confidence,
                     evidence=[f"lesson {item.id}"],
                 ))

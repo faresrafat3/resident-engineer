@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from resident_engineer.system import ResidentEngineeringSystem
 from resident_engineer.bots import create_resident_engineer
+from resident_engineer.brain import RepositoryBrain, Doctrine, DoctrineType
 from resident_engineer.pr import PRStatus
 
 TITLE = "Fix ValueError when config key is missing"
@@ -21,8 +22,13 @@ DESC = (
 
 
 def _system_with_engineer() -> ResidentEngineeringSystem:
+    """A system with an agent AND a brain. The brain matters: with F3, a
+    contribution with no brain is held as draft, so 'ready' requires one."""
     s = ResidentEngineeringSystem()
     s.register_agent(create_resident_engineer("resident-engineer"))
+    brain = RepositoryBrain(project="some/repo", url="https://github.com/some/repo")
+    brain.add_doctrine(Doctrine(DoctrineType.CONTRIBUTION, "run the gate before committing", "AGENTS.md"))
+    s.register_brain(brain)
     return s
 
 
