@@ -38,6 +38,35 @@ _TYPE_HINTS: list[tuple[tuple[str, ...], DoctrineType]] = [
     (("design", "architecture", "module", "layer"), DoctrineType.DESIGN),
 ]
 
+# A rule's own TEXT can override the heading's type. When a line explicitly
+# names a compatibility surface, it is a compatibility rule no matter which
+# section it sits under — the heading is a hint, the content is the truth.
+# Without this, a "Never break the public API" rule under a "## Design"
+# heading was classified DESIGN and the brain's conflict check (which only
+# inspects COMPATIBILITY doctrine) never saw it.
+_TEXT_OVERRIDES: list[tuple[tuple[str, ...], DoctrineType]] = [
+    (("public api", "backward", "backwards", "breaking change", "break the api",
+      "compatib"), DoctrineType.COMPATIBILITY),
+]
+
+
+def _classify(heading: str, rule_text: str = "") -> DoctrineType:
+    """Classify a rule by its section heading, then its own text.
+
+    Text overrides heading: a rule that explicitly names a compatibility
+    surface is COMPATIBILITY regardless of the section it sits in. Falls back
+    to DESIGN (a neutral bucket, never a guess at a specific type).
+    """
+    low_rule = rule_text.lower()
+    for hints, dtype in _TEXT_OVERRIDES:
+        if any(h in low_rule for h in hints):
+            return dtype
+    low = heading.lower()
+    for hints, dtype in _TYPE_HINTS:
+        if any(h in low for h in hints):
+            return dtype
+    return DoctrineType.DESIGN  # default bucket, never a guess at a specific type
+
 
 @dataclass
 class ExtractedRule:
@@ -45,14 +74,6 @@ class ExtractedRule:
     doctrine_type: DoctrineType
     source: str
     line_no: int
-
-
-def _classify(context: str) -> DoctrineType:
-    low = context.lower()
-    for hints, dtype in _TYPE_HINTS:
-        if any(h in low for h in hints):
-            return dtype
-    return DoctrineType.DESIGN  # default bucket, never a guess at a specific type
 
 
 def _is_rule(line: str) -> bool:
@@ -86,7 +107,7 @@ def extract_rules(text: str, source: str) -> list[ExtractedRule]:
             if len(clean) < 12:
                 continue
             rules.append(ExtractedRule(
-                text=clean, doctrine_type=_classify(current_heading),
+                text=clean, doctrine_type=_classify(current_heading, clean),
                 source=source, line_no=i,
             ))
     return rules

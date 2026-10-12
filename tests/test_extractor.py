@@ -72,6 +72,21 @@ class TestExtractRules:
         assert all(r.source == "AGENTS.md" for r in rules)
         assert all(r.line_no > 0 for r in rules)
 
+    def test_text_overrides_heading_type(self):
+        # a rule whose OWN text names a compatibility surface is COMPATIBILITY
+        # even under a non-compat heading — the heading is a hint, text is truth
+        text = ("## Design notes\n\n"
+                "- You must never break the public API when changing this module.\n")
+        rules = extract_rules(text, "AGENTS.md")
+        assert len(rules) == 1
+        assert rules[0].doctrine_type == DoctrineType.COMPATIBILITY
+
+    def test_heading_still_classifies_when_text_neutral(self):
+        text = ("## Compatibility\n\n"
+                "- You must keep this stable across releases.\n")
+        rules = extract_rules(text, "AGENTS.md")
+        assert rules[0].doctrine_type == DoctrineType.COMPATIBILITY
+
 
 class TestExtractPlaybook:
     def test_extracts_gate_command(self):
