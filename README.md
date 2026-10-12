@@ -192,8 +192,15 @@ What to measure for each task type: Bug Fix, API Change, Performance, Migration,
 ## Installation
 
 ```bash
+git clone https://github.com/faresrafat3/resident-engineer
+cd resident-engineer
 pip install -e .
 ```
+
+Requires Python ≥3.10. **Zero runtime dependencies** (stdlib only). `gh` CLI
+is needed only for the `brain`/`contribute` commands that read a live repo;
+everything else — admission, the court, the loop, the CLI's `show` — runs
+fully offline.
 
 ## Usage
 
