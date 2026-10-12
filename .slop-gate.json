@@ -1,31 +1,31 @@
 {
   "version": 1,
   "reproduction": {
-    "summary": "v0.1.0 release of resident-engineer. The full contribution loop runs end to end: doctrine reader (extractor+fetch) reads a real repo's AGENTS.md, TaskAdmission rejects unclear tasks, VerificationCourt fails on critical checks, run_contribution wires admission->brain->route->cell->court->PR, consult_brain blocks conflicting approaches, apply_pr_outcome folds merged/rejected results into the brain. CLI (brain|contribute|show) is fail-closed and --no-brain stays offline.",
-    "at": "2026-10-12T17:52:00Z"
+    "summary": "v0.1.1 of resident-engineer: the same fail-closed contribution loop as v0.1.0, with 9 adversarial-review findings fixed (F1 conflict-on-approach, F2 real scope limit, F3 no-brain->draft, F5 real test-result validation, F7 no loop poison, F11 word-boundary classify, F12 precedents returned, F13 fence skip, F14 negation-aware playbook). Each finding was reproduced, fixed, and re-run NOT-REPRODUCED; 12 regression tests pin them.",
+    "at": "2026-10-12T18:15:00Z"
   },
   "duplicateCheck": {
     "query": "git tag -l && gh release list --repo faresrafat3/resident-engineer",
-    "result": "no prior tags or releases; v0.1.0 is the first",
-    "at": "2026-10-12T17:52:00Z"
+    "result": "v0.1.0 exists (pre-fixes); v0.1.1 is new and carries the 9 fixes",
+    "at": "2026-10-12T18:15:00Z"
   },
   "conventions": ["pyproject.toml"],
   "lint": {
-    "command": "python3 -m py_compile src/resident_engineer/system.py src/resident_engineer/brain/extractor.py src/resident_engineer/brain/fetch.py src/resident_engineer/cli.py",
-    "ranAt": "2026-10-12T17:52:00Z",
-    "treeHash": "a608bd95f2fe"
+    "command": "python3 -m py_compile src/resident_engineer/system.py src/resident_engineer/brain/extractor.py src/resident_engineer/brain/fetch.py src/resident_engineer/kernel/outcome.py src/resident_engineer/cli.py",
+    "ranAt": "2026-10-12T18:15:00Z",
+    "treeHash": "1a36ccf976e6"
   },
   "tests": {
     "command": "pytest tests/ -q",
-    "result": "83 passed",
-    "ranAt": "2026-10-12T17:52:00Z",
-    "treeHash": "a608bd95f2fe"
+    "result": "96 passed",
+    "ranAt": "2026-10-12T18:15:00Z",
+    "treeHash": "1a36ccf976e6"
   },
   "review": {
-    "command": "pytest tests/ -q",
-    "result": "83 passed — the loop, both fail-closed gates, the resident step, the closed outcome loop, and the CLI are all covered",
-    "ranAt": "2026-10-12T17:52:00Z",
-    "treeHash": "a608bd95f2fe",
-    "reviewers": ["pytest"]
+    "command": "slop-reviewer (adversarial subagent) on d1023a1..HEAD; findings reproduced, fixed, pinned",
+    "result": "HOLD -> SHIP: 9 findings fixed, each re-run NOT-REPRODUCED, 12 regression tests added (tests/test_review_fixes.py)",
+    "ranAt": "2026-10-12T18:15:00Z",
+    "treeHash": "1a36ccf976e6",
+    "reviewers": ["slop-reviewer"]
   }
 }
