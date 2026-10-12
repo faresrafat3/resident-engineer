@@ -26,6 +26,11 @@ def _run(argv: list[str]) -> tuple[int, str]:
     return code, out.getvalue()
 
 
+# --no-brain on every contribute call: the tests must not touch the network.
+# The gate being tested is the loop's, not gh's.
+_BASE = ["--no-brain"]
+
+
 class TestContributeCLI:
     def test_ready_contribution_exits_zero(self):
         code, out = _run([
@@ -33,7 +38,7 @@ class TestContributeCLI:
             "--title", "Fix ValueError when config key is missing",
             "--description", DESC, "--approach", "name the missing key",
             "--files", "config.py", "--tests", "test_config.py",
-            "--passed", "5", "--failed", "0",
+            "--passed", "5", "--failed", "0", *_BASE,
         ])
         assert code == 0
         assert "ready" in out
@@ -44,7 +49,7 @@ class TestContributeCLI:
             "contribute", "some/repo",
             "--title", "Fix ValueError when config key is missing",
             "--description", DESC, "--approach", "name the key",
-            "--passed", "3", "--failed", "2",
+            "--passed", "3", "--failed", "2", *_BASE,
         ])
         assert code == 1               # fail-closed: blocked is not success
         assert "blocked" in out
@@ -53,7 +58,7 @@ class TestContributeCLI:
         code, out = _run([
             "contribute", "some/repo",
             "--title", "fix", "--description", "maybe broken somehow could be",
-            "--approach", "guess", "--passed", "1",
+            "--approach", "guess", "--passed", "1", *_BASE,
         ])
         assert code == 1
         assert "rejected" in out

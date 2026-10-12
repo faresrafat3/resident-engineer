@@ -58,13 +58,20 @@ def _cmd_brain(args: argparse.Namespace) -> int:
 
 def _cmd_contribute(args: argparse.Namespace) -> int:
     """Run the full contribution loop for a repo (dry — builds the PR body,
-    does not push). The loop is fail-closed; a blocked contribution exits 1."""
+    does not push). The loop is fail-closed; a blocked contribution exits 1.
+
+    The repo's brain is pulled in so the loop consults real doctrine, unless
+    --no-brain is passed (then the loop runs with no brain, which is honest:
+    no doctrine, no conflict detection). Fetching is skipped with --no-brain so
+    the command stays offline and testable when the caller already has context.
+    """
     system = ResidentEngineeringSystem()
     system.register_agent(create_resident_engineer("resident-engineer"))
-    # pull the repo's brain in so the loop consults real doctrine
-    docs = fetch_doctrine_docs(args.repo)
-    if docs:
-        system.register_brain(build_brain(args.repo, f"https://github.com/{args.repo}", docs))
+    # pull the repo's brain in so the loop consults real doctrine (unless opted out)
+    if not args.no_brain:
+        docs = fetch_doctrine_docs(args.repo)
+        if docs:
+            system.register_brain(build_brain(args.repo, f"https://github.com/{args.repo}", docs))
 
     result = system.run_contribution(
         args.title, args.description, args.repo,
@@ -125,6 +132,8 @@ def build_parser() -> argparse.ArgumentParser:
     c.add_argument("--risks", help="comma-separated risks")
     c.add_argument("--passed", type=int, default=0)
     c.add_argument("--failed", type=int, default=0)
+    c.add_argument("--no-brain", action="store_true",
+                   help="skip fetching the repo's doctrine docs (stay offline)")
     c.add_argument("--json", action="store_true")
     c.set_defaults(func=_cmd_contribute)
 
